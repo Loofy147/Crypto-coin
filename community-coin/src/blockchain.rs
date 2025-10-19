@@ -541,78 +541,97 @@ mod tests {
 
     #[test]
     fn test_transaction_with_fees() {
-        let mut initial = HashMap::new();
-        initial.insert("alice".to_string(), 1000);
-        initial.insert("bob".to_string(), 500);
-
+        // Arrange
+        let mut initial_wallets = HashMap::new();
+        initial_wallets.insert("alice".to_string(), 1000);
+        initial_wallets.insert("bob".to_string(), 500);
         let db_path = "test_db_transaction_with_fees";
-        let blockchain = CommunityBlockchain::new(initial, db_path).unwrap();
-        let _ = std::fs::remove_dir_all(db_path);
+        let _ = std::fs::remove_dir_all(db_path); // Cleanup before test
+        let blockchain = CommunityBlockchain::new(initial_wallets, db_path).unwrap();
 
-
+        // Act
         let tx_id = blockchain
             .create_transaction("alice".to_string(), "bob".to_string(), 100)
             .unwrap();
 
+        // Assert
         assert!(!tx_id.is_empty());
-        let pending = blockchain.get_pending();
-        assert_eq!(pending[0].fee, 1); // 1% of 100
+        let pending_txs = blockchain.get_pending();
+        assert_eq!(pending_txs[0].fee, 1); // 1% of 100
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(db_path);
     }
 
     #[test]
     fn test_block_persistence() {
-        let mut initial = HashMap::new();
-        initial.insert("alice".to_string(), 1000);
-
+        // Arrange
+        let mut initial_wallets = HashMap::new();
+        initial_wallets.insert("alice".to_string(), 1000);
         let db_path = "test_db_block_persistence";
-        let blockchain = CommunityBlockchain::new(initial, db_path).unwrap();
-        let _ = std::fs::remove_dir_all(db_path);
+        let _ = std::fs::remove_dir_all(db_path); // Cleanup before test
+        let blockchain = CommunityBlockchain::new(initial_wallets, db_path).unwrap();
+
+        // Act
         blockchain
             .create_transaction("alice".to_string(), "bob".to_string(), 100)
             .unwrap();
-
         let block = blockchain.mine_block("proposer".to_string()).unwrap();
         blockchain.add_block(block).unwrap();
 
+        // Assert
         assert_eq!(blockchain.get_balance("alice").unwrap(), 899); // 1000 - 100 - 1 fee
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(db_path);
     }
 
     #[test]
     fn test_leaderboard_ordering() {
-        let mut initial = HashMap::new();
-        initial.insert("alice".to_string(), 1000);
-        initial.insert("bob".to_string(), 500);
-        initial.insert("charlie".to_string(), 750);
-
+        // Arrange
+        let mut initial_wallets = HashMap::new();
+        initial_wallets.insert("alice".to_string(), 1000);
+        initial_wallets.insert("bob".to_string(), 500);
+        initial_wallets.insert("charlie".to_string(), 750);
         let db_path = "test_db_leaderboard_ordering";
-        let blockchain = CommunityBlockchain::new(initial, db_path).unwrap();
-        let _ = std::fs::remove_dir_all(db_path);
+        let _ = std::fs::remove_dir_all(db_path); // Cleanup before test
+        let blockchain = CommunityBlockchain::new(initial_wallets, db_path).unwrap();
+
+        // Act
         let leaderboard = blockchain.get_leaderboard();
 
+        // Assert
         assert_eq!(leaderboard[0].address, "alice");
         assert_eq!(leaderboard[1].address, "charlie");
         assert_eq!(leaderboard[2].address, "bob");
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(db_path);
     }
 
     #[test]
     fn test_fast_transaction_lookup() {
-        let mut initial = HashMap::new();
-        initial.insert("alice".to_string(), 1000);
-
+        // Arrange
+        let mut initial_wallets = HashMap::new();
+        initial_wallets.insert("alice".to_string(), 1000);
         let db_path = "test_db_fast_transaction_lookup";
-        let blockchain = CommunityBlockchain::new(initial, db_path).unwrap();
-        let _ = std::fs::remove_dir_all(db_path);
+        let _ = std::fs::remove_dir_all(db_path); // Cleanup before test
+        let blockchain = CommunityBlockchain::new(initial_wallets, db_path).unwrap();
 
+        // Act
         for _ in 0..100 {
             blockchain
                 .create_transaction("alice".to_string(), "bob".to_string(), 1)
                 .unwrap();
         }
-
         let block = blockchain.mine_block("proposer".to_string()).unwrap();
         blockchain.add_block(block).unwrap();
-
         let history = blockchain.get_user_transactions("alice");
+
+        // Assert
         assert_eq!(history.len(), 100);
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(db_path);
     }
 }
