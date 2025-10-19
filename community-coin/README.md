@@ -84,6 +84,60 @@ The API will be available at `http://localhost:8000`.
       -d '{"proposer":"alice"}'
     ```
 
+## 💻 CLI Wallet
+
+Community Coin also includes a command-line interface (CLI) wallet for easy interaction with the blockchain.
+
+### Installation
+
+The CLI is built along with the main application:
+
+```bash
+cargo build --release
+```
+
+### Usage
+
+-   **Check Balance:**
+
+    ```bash
+    ./target/release/cli wallet balance <ADDRESS>
+    ```
+
+-   **Transfer Coins:**
+
+    ```bash
+    ./target/release/cli wallet transfer --from <FROM> --to <TO> --amount <AMOUNT> --private-key <PRIVATE_KEY>
+    ```
+
+-   **Get History:**
+
+    ```bash
+    ./target/release/cli wallet history <ADDRESS>
+    ```
+
+## 🌐 P2P Networking
+
+Community Coin uses `libp2p` to create a peer-to-peer network for discovering other nodes and sharing transactions and blocks.
+
+### Running Multiple Nodes
+
+To run multiple nodes on the same machine, you can specify a different API port and P2P port for each node:
+
+**Node 1:**
+
+```bash
+cargo run --release -- --api-port 8000 --p2p-port 10000
+```
+
+**Node 2:**
+
+```bash
+cargo run --release -- --api-port 8001 --p2p-port 10001
+```
+
+The nodes will automatically discover each other on the local network using mDNS.
+
 ## 🛠️ Built With
 
 -   [Axum](https://github.com/tokio-rs/axum) - Web framework
