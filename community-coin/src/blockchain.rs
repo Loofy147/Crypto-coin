@@ -5,9 +5,10 @@ use std::sync::{Arc, Mutex};
 use dashmap::DashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Transaction: User sends coins to another user with optional fee
+/// Represents a transaction in the blockchain.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Transaction {
+    /// The sender's address.
     pub from: String,
     pub to: String,
     pub amount: u64,
@@ -18,9 +19,10 @@ pub struct Transaction {
     pub nonce: u64,
 }
 
-/// Block: Contains multiple transactions with state root
+/// Represents a block in the blockchain.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
+    /// The block's index in the chain.
     pub index: u64,
     pub timestamp: u64,
     pub transactions: Vec<Transaction>,
@@ -30,9 +32,10 @@ pub struct Block {
     pub state_root: String,
 }
 
-/// Wallet: Each user has a wallet with balance and history
+/// Represents a user's wallet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
+    /// The wallet's unique address.
     pub address: String,
     pub balance: u64,
     pub tx_count: u64,
@@ -40,9 +43,10 @@ pub struct Wallet {
     pub last_updated: u64,
 }
 
-/// Transaction index for fast lookups
+/// An index for a transaction's location in the blockchain.
 #[derive(Debug, Clone)]
 pub struct TransactionIndex {
+    /// The ID of the transaction.
     pub tx_id: String,
     pub block_index: u64,
     pub tx_index_in_block: usize,
@@ -60,7 +64,12 @@ pub struct CommunityBlockchain {
 }
 
 impl CommunityBlockchain {
-    /// Create new blockchain with sled persistence
+    /// Creates a new `CommunityBlockchain` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `initial_wallets` - A map of initial wallet addresses and balances.
+    /// * `db_path` - The path to the sled database file.
     pub fn new(initial_wallets: HashMap<String, u64>, db_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let state_db = sled::open(db_path)?;
         let now = current_timestamp();
@@ -114,7 +123,7 @@ impl CommunityBlockchain {
         })
     }
 
-    /// Load blockchain from disk
+    /// Loads the blockchain from the `blockchain_state` database.
     pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
         let state_db = sled::open("blockchain_state")?;
 
@@ -158,7 +167,7 @@ impl CommunityBlockchain {
         })
     }
 
-    /// Create transaction with validation and nonce tracking
+    /// Creates a new transaction and adds it to the pending pool.
     pub fn create_transaction(
         &self,
         from: String,

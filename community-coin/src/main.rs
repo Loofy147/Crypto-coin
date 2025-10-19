@@ -14,19 +14,32 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod blockchain;
 use blockchain::CommunityBlockchain;
 
-/// Rate limiter
+/// A simple rate limiter using the token bucket algorithm.
 #[derive(Clone)]
 pub struct RateLimiter {
+    /// A map of buckets, where each key is a client identifier and the value is a tuple of (tokens, last_refill_timestamp).
     buckets: Arc<DashMap<String, (f64, u64)>>,
 }
 
 impl RateLimiter {
+    /// Creates a new `RateLimiter`.
     pub fn new() -> Self {
         RateLimiter {
             buckets: Arc::new(DashMap::new()),
         }
     }
 
+    /// Checks if a request is allowed for a given key.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - A unique identifier for the client (e.g., IP address).
+    /// * `limit` - The maximum number of tokens in the bucket.
+    /// * `window_secs` - The time window in seconds to refill the bucket.
+    ///
+    /// # Returns
+    ///
+    /// * `true` if the request is allowed, `false` otherwise.
     pub fn check(&self, key: String, limit: f64, window_secs: u64) -> bool {
         let now = current_timestamp();
         let mut entry = self.buckets.entry(key).or_insert_with(|| (limit, now));
@@ -45,15 +58,19 @@ impl RateLimiter {
     }
 }
 
-/// Leaderboard cache
+/// A cache for the leaderboard to reduce database load.
 #[derive(Clone)]
 pub struct LeaderboardCache {
+    /// The cached leaderboard data.
     cache: Arc<RwLock<Option<Vec<blockchain::Wallet>>>>,
+    /// The timestamp of the last cache update.
     last_update: Arc<RwLock<u64>>,
+    /// The time-to-live for the cache in seconds.
     ttl_secs: u64,
 }
 
 impl LeaderboardCache {
+    /// Creates a new `LeaderboardCache` with a given TTL.
     pub fn new(ttl_secs: u64) -> Self {
         LeaderboardCache {
             cache: Arc::new(RwLock::new(None)),
@@ -62,6 +79,7 @@ impl LeaderboardCache {
         }
     }
 
+    /// Retrieves the leaderboard from the cache or updates it if it's stale.
     pub async fn get_or_update(&self, wallets: Vec<blockchain::Wallet>) -> Vec<blockchain::Wallet> {
         let now = current_timestamp();
         let last_update = *self.last_update.read().await;
@@ -77,18 +95,24 @@ impl LeaderboardCache {
         wallets
     }
 
+    /// Invalidates the cache.
     pub async fn invalidate(&self) {
         *self.cache.write().await = None;
     }
 }
 
+/// The shared application state.
 #[derive(Clone)]
 pub struct AppState {
+    /// The blockchain instance.
     blockchain: Arc<RwLock<CommunityBlockchain>>,
+    /// The rate limiter.
     rate_limiter: RateLimiter,
+    /// The leaderboard cache.
     leaderboard_cache: LeaderboardCache,
 }
 
+/// A request to transfer coins.
 #[derive(Serialize, Deserialize)]
 pub struct TransferRequest {
     pub from: String,
