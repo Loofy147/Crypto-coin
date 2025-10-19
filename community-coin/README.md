@@ -84,6 +84,38 @@ The API will be available at `http://localhost:8000`.
       -d '{"proposer":"alice"}'
     ```
 
+## 💻 CLI Wallet
+
+Community Coin also includes a command-line interface (CLI) wallet for easy interaction with the blockchain.
+
+### Installation
+
+The CLI is built along with the main application:
+
+```bash
+cargo build --release
+```
+
+### Usage
+
+-   **Check Balance:**
+
+    ```bash
+    ./target/release/cli wallet balance <ADDRESS>
+    ```
+
+-   **Transfer Coins:**
+
+    ```bash
+    ./target/release/cli wallet transfer --from <FROM> --to <TO> --amount <AMOUNT> --private-key <PRIVATE_KEY>
+    ```
+
+-   **Get History:**
+
+    ```bash
+    ./target/release/cli wallet history <ADDRESS>
+    ```
+
 ## 🛠️ Built With
 
 -   [Axum](https://github.com/tokio-rs/axum) - Web framework
