@@ -1,5 +1,3 @@
-pub mod blockchain;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -13,7 +11,7 @@ use tokio::sync::RwLock;
 use dashmap::DashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use self::blockchain::CommunityBlockchain;
+use community_coin::blockchain::{self, CommunityBlockchain};
 
 /// Rate limiter
 #[derive(Clone)]
