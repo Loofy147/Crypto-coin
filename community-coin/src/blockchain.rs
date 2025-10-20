@@ -97,7 +97,7 @@ impl CommunityBlockchain {
         };
 
         let chain = Arc::new(Mutex::new(vec![genesis.clone()]));
-        
+
         // Persist genesis
         let genesis_json = serde_json::to_string(&genesis)?;
         state_db.insert(b"block:0", genesis_json.as_bytes())?;
@@ -115,7 +115,7 @@ impl CommunityBlockchain {
     /// Load blockchain from disk
     pub fn load(db_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let state_db = sled::open(db_path)?;
-        
+
         let mut chain = Vec::new();
         let wallets = Arc::new(DashMap::new());
         let tx_index = Arc::new(DashMap::new());
