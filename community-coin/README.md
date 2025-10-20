@@ -140,6 +140,22 @@ Use the CLI to execute a function on a deployed smart contract:
 ./target/release/cli contract execute --contract-id <CONTRACT_ID> --function <FUNCTION_NAME> --args <ARGS_JSON> --private-key <PRIVATE_KEY>
 ```
 
+## 🛡️ Shared Security
+
+Community Coin uses a shared security model inspired by EigenLayer to secure the network. Validators stake assets on a simulated Settlement Layer, and their attestations are required to validate new blocks.
+
+### Becoming a Validator
+
+To become a validator, you must stake assets on the Settlement Layer. This can be done via the CLI:
+
+```bash
+./target/release/cli validator stake --amount <AMOUNT> --private-key <PRIVATE_KEY>
+```
+
+### Slashing
+
+Validators who act maliciously (e.g., by signing conflicting blocks) will have their stake slashed.
+
 ## 🌐 P2P Networking
 
 Community Coin uses `libp2p` to create a peer-to-peer network for discovering other nodes and sharing transactions and blocks.
