@@ -3,7 +3,6 @@ use sha2::{Sha256, Digest};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use dashmap::DashMap;
-use chrono::Utc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Transaction: User sends coins to another user with optional fee
@@ -57,13 +56,12 @@ pub struct CommunityBlockchain {
     pending_txs: Arc<Mutex<Vec<Transaction>>>,
     nonces: Arc<DashMap<String, u64>>, // Track nonce per user for ordering
     state_db: sled::Db,
-    txn_counter: Arc<Mutex<u64>>,
 }
 
 impl CommunityBlockchain {
     /// Create new blockchain with sled persistence
-    pub fn new(initial_wallets: HashMap<String, u64>) -> Result<Self, Box<dyn std::error::Error>> {
-        let state_db = sled::open("blockchain_state")?;
+    pub fn new(initial_wallets: HashMap<String, u64>, db_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let state_db = sled::open(db_path)?;
         let now = current_timestamp();
 
         let wallets = Arc::new(DashMap::new());
@@ -111,13 +109,12 @@ impl CommunityBlockchain {
             pending_txs: Arc::new(Mutex::new(Vec::new())),
             nonces,
             state_db,
-            txn_counter: Arc::new(Mutex::new(0)),
         })
     }
 
     /// Load blockchain from disk
-    pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
-        let state_db = sled::open("blockchain_state")?;
+    pub fn load(db_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let state_db = sled::open(db_path)?;
         
         let mut chain = Vec::new();
         let wallets = Arc::new(DashMap::new());
@@ -140,7 +137,7 @@ impl CommunityBlockchain {
 
         // Load all wallets and rebuild indices
         for item in state_db.scan_prefix(b"wallet:") {
-            if let Ok((key, value)) = item {
+            if let Ok((_key, value)) = item {
                 let wallet: Wallet = serde_json::from_slice(&value)?;
                 wallets.insert(wallet.address.clone(), wallet.clone());
                 nonces.insert(wallet.address.clone(), 0);
@@ -155,7 +152,6 @@ impl CommunityBlockchain {
             pending_txs: Arc::new(Mutex::new(Vec::new())),
             nonces,
             state_db,
-            txn_counter: Arc::new(Mutex::new(0)),
         })
     }
 
@@ -476,6 +472,10 @@ impl CommunityBlockchain {
         self.chain.lock().unwrap().clone()
     }
 
+    pub fn get_balance(&self, address: &str) -> Result<u64, String> {
+        self.get_wallet(address).map(|w| w.balance)
+    }
+
     /// Verify chain integrity
     pub fn verify_chain(&self) -> bool {
         let chain = self.chain.lock().unwrap();
@@ -526,14 +526,27 @@ fn current_timestamp() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn get_unique_db_path() -> String {
+        let count = DB_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let path = format!("test_db_{}", count);
+        if std::path::Path::new(&path).exists() {
+            std::fs::remove_dir_all(&path).unwrap();
+        }
+        path
+    }
 
     #[test]
     fn test_transaction_with_fees() {
+        let db_path = get_unique_db_path();
         let mut initial = HashMap::new();
         initial.insert("alice".to_string(), 1000);
         initial.insert("bob".to_string(), 500);
 
-        let blockchain = CommunityBlockchain::new(initial).unwrap();
+        let blockchain = CommunityBlockchain::new(initial, &db_path).unwrap();
 
         let tx_id = blockchain
             .create_transaction("alice".to_string(), "bob".to_string(), 100)
@@ -542,14 +555,17 @@ mod tests {
         assert!(!tx_id.is_empty());
         let pending = blockchain.get_pending();
         assert_eq!(pending[0].fee, 1); // 1% of 100
+
+        drop(blockchain);
     }
 
     #[test]
     fn test_block_persistence() {
+        let db_path = get_unique_db_path();
         let mut initial = HashMap::new();
         initial.insert("alice".to_string(), 1000);
 
-        let blockchain = CommunityBlockchain::new(initial).unwrap();
+        let blockchain = CommunityBlockchain::new(initial, &db_path).unwrap();
         blockchain
             .create_transaction("alice".to_string(), "bob".to_string(), 100)
             .unwrap();
@@ -558,29 +574,35 @@ mod tests {
         blockchain.add_block(block).unwrap();
 
         assert_eq!(blockchain.get_balance("alice").unwrap(), 899); // 1000 - 100 - 1 fee
+
+        drop(blockchain);
     }
 
     #[test]
     fn test_leaderboard_ordering() {
+        let db_path = get_unique_db_path();
         let mut initial = HashMap::new();
         initial.insert("alice".to_string(), 1000);
         initial.insert("bob".to_string(), 500);
         initial.insert("charlie".to_string(), 750);
 
-        let blockchain = CommunityBlockchain::new(initial).unwrap();
+        let blockchain = CommunityBlockchain::new(initial, &db_path).unwrap();
         let leaderboard = blockchain.get_leaderboard();
 
         assert_eq!(leaderboard[0].address, "alice");
         assert_eq!(leaderboard[1].address, "charlie");
         assert_eq!(leaderboard[2].address, "bob");
+
+        drop(blockchain);
     }
 
     #[test]
     fn test_fast_transaction_lookup() {
+        let db_path = get_unique_db_path();
         let mut initial = HashMap::new();
         initial.insert("alice".to_string(), 1000);
 
-        let blockchain = CommunityBlockchain::new(initial).unwrap();
+        let blockchain = CommunityBlockchain::new(initial, &db_path).unwrap();
 
         for _ in 0..100 {
             blockchain
@@ -593,9 +615,7 @@ mod tests {
 
         let history = blockchain.get_user_transactions("alice");
         assert_eq!(history.len(), 100);
-    }
 
-    pub fn get_balance(&self, address: &str) -> Result<u64, String> {
-        self.get_wallet(address).map(|w| w.balance)
+        drop(blockchain);
     }
 }

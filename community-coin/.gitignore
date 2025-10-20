@@ -1,1 +1,3 @@
 /target
+/blockchain_state
+/test_db_*
