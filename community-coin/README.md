@@ -116,6 +116,30 @@ cargo build --release
     ./target/release/cli wallet history <ADDRESS>
     ```
 
+## 📝 Smart Contracts
+
+Community Coin supports general-purpose smart contracts written in any language that can be compiled to WebAssembly (Wasm).
+
+### Writing Smart Contracts
+
+Smart contracts interact with the blockchain through a defined ABI. An example "counter" contract written in Rust can be found in the `example-contract` directory.
+
+### Deploying Smart Contracts
+
+Use the CLI to deploy a smart contract:
+
+```bash
+./target/release/cli contract deploy --path <PATH_TO_WASM_FILE> --private-key <PRIVATE_KEY>
+```
+
+### Executing Smart Contracts
+
+Use the CLI to execute a function on a deployed smart contract:
+
+```bash
+./target/release/cli contract execute --contract-id <CONTRACT_ID> --function <FUNCTION_NAME> --args <ARGS_JSON> --private-key <PRIVATE_KEY>
+```
+
 ## 🌐 P2P Networking
 
 Community Coin uses `libp2p` to create a peer-to-peer network for discovering other nodes and sharing transactions and blocks.
