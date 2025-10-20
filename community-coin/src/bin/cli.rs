@@ -1,89 +1,41 @@
-use clap::{Parser, Subcommand};
-use reqwest;
-use serde_json::Value;
+//! A command-line interface for the Community Coin blockchain.
 
-#[derive(Parser)]
-#[clap(author, version, about, long_about = None)]
-struct Cli {
-    #[clap(subcommand)]
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[command(subcommand)]
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(clap::Subcommand, Debug)]
 enum Commands {
-    /// Wallet management
-    Wallet {
-        #[clap(subcommand)]
-        wallet_command: WalletCommands,
-    },
-}
-
-#[derive(Subcommand)]
-enum WalletCommands {
-    /// Get wallet balance
+    /// Get the balance of an address
     Balance {
-        #[clap(value_parser)]
+        #[arg(short, long)]
         address: String,
     },
-    /// Transfer coins to another wallet
+    /// Send coins to another address
     Transfer {
-        #[clap(long)]
+        #[arg(short, long)]
         from: String,
-        #[clap(long)]
+        #[arg(short, long)]
         to: String,
-        #[clap(long)]
+        #[arg(short, long)]
         amount: u64,
-        #[clap(long)]
-        private_key: String,
-    },
-    /// Get transaction history for a wallet
-    History {
-        #[clap(value_parser)]
-        address: String,
     },
 }
 
-#[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
-    let cli = Cli::parse();
-    let client = reqwest::Client::new();
+fn main() {
+    let args = Args::parse();
 
-    match &cli.command {
-        Commands::Wallet { wallet_command } => match wallet_command {
-            WalletCommands::Balance { address } => {
-                let res = client
-                    .get(&format!("http://localhost:8000/wallet/{}", address))
-                    .send()
-                    .await?
-                    .json::<Value>()
-                    .await?;
-                println!("{}", serde_json::to_string_pretty(&res).unwrap());
-            }
-            WalletCommands::Transfer { from, to, amount, private_key } => {
-                let res = client
-                    .post("http://localhost:8000/transfer")
-                    .json(&serde_json::json!({
-                        "from": from,
-                        "to": to,
-                        "amount": amount,
-                        "private_key": private_key,
-                    }))
-                    .send()
-                    .await?
-                    .json::<Value>()
-                    .await?;
-                println!("{}", serde_json::to_string_pretty(&res).unwrap());
-            }
-            WalletCommands::History { address } => {
-                let res = client
-                    .get(&format!("http://localhost:8000/history/{}", address))
-                    .send()
-                    .await?
-                    .json::<Value>()
-                    .await?;
-                println!("{}", serde_json::to_string_pretty(&res).unwrap());
-            }
-        },
+    match &args.command {
+        Commands::Balance { address } => {
+            println!("Getting balance for address: {}", address);
+        }
+        Commands::Transfer { from, to, amount } => {
+            println!("Transferring {} from {} to {}", amount, from, to);
+        }
     }
-    Ok(())
 }
